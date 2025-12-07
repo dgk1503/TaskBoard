@@ -9,7 +9,6 @@ const Register = () => {
     name: "",
     email: "",
     password: "",
-    
   });
 
   const [message, setMessage] = useState("");
@@ -41,7 +40,7 @@ const Register = () => {
       <Navbar />
       <div className="max-w-md mx-auto mt-10 p-6 backdrop-blur-sm rounded-lg shadow-xl">
         <h2 className="text-2xl font-bold mb-6">Register</h2>
-        {message && <p className="text-black mb-4">{message}</p>}
+        {message && <p className="text-black font-bold mb-4">{message}</p>}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block mb-2">Name</label>
@@ -76,7 +75,7 @@ const Register = () => {
               required
             />
           </div>
-          
+
           <button
             type="submit"
             className="w-full bg-blue-500 text-white p-2 rounded transition ease-in-out duration-300 hover:bg-blue-600"

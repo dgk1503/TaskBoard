@@ -15,26 +15,25 @@ export const register = async (req, res) => {
   }
 
   try {
+    console.log(`[auth] register request for: ${email}`);
+    console.time(`[auth] register ${email}`);
     const existing_user = await userModel.findOne({ email });
 
     if (existing_user) {
       return res.json({ success: false, message: "User already exists" });
     }
-    const hashed_pass = await bcrypt.hash(password, 20);
-    const verifyOtp = generateOTP();
-    const verifyOtpExpireAt = Date.now() + 600000; // 10 minutes
+
+    const hashed_pass = await bcrypt.hash(password, 12);
 
     const user = new userModel({
       name,
       email,
       password: hashed_pass,
-      verifyOtp,
-      verifyOtpExpireAt,
-      isAccountVerified: false,
+      // OTP fields intentionally omitted while testing
+      isAccountVerified: true,
     });
 
     await user.save();
-    await sendVerificationEmail(email, verifyOtp);
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
@@ -43,15 +42,16 @@ export const register = async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 604800000,
     });
-
+    console.timeEnd(`[auth] register ${email}`);
     return res.json({
       success: true,
       message: "Check your email for verification code.",
     });
   } catch (err) {
+    console.error(`[auth] register error for ${email}:`, err.message || err);
     res.json({ success: false, message: err.message });
   }
 };
@@ -67,15 +67,19 @@ export const login = async (req, res) => {
   }
 
   try {
+    console.log(`[auth] login request for: ${email}`);
+    console.time(`[auth] login ${email}`);
     const user = await userModel.findOne({ email });
 
     if (!user) {
+      console.timeEnd(`[auth] login ${email}`);
       return res.json({ success: false, message: "No user found" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
+      console.timeEnd(`[auth] login ${email}`);
       return res.json({ success: false, message: "Invalid Credentials" });
     }
 
@@ -83,16 +87,17 @@ export const login = async (req, res) => {
       expiresIn: "7d",
     });
 
-    // set cookie so frontend can use it for authenticated requests
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 604800000,
     });
+    console.timeEnd(`[auth] login ${email}`);
 
     return res.json({ success: true });
   } catch (err) {
+    console.error(`[auth] login error for ${email}:`, err.message || err);
     res.json({ success: false, message: "Log in error " });
   }
 };
@@ -102,7 +107,7 @@ export const logout = async (req, res) => {
     res.clearCookie("token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     });
 
     return res.json({ success: true, message: "Logged out" });
@@ -166,7 +171,7 @@ export const getMe = async (req, res) => {
       return res
         .status(401)
         .json({ success: false, message: "Not authenticated" });
-    // ensure password isn't sent
+
     const { password, verifyOtp, verifyOtpExpireAt, ...safeUser } = req.user
       .toObject
       ? req.user.toObject()

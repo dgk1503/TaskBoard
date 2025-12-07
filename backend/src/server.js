@@ -24,7 +24,13 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 // this middleware will parse JSON bodies: req.body
-app.use(rateLimiter);
+// Rate limiter can be disabled for debugging by setting DISABLE_RATE_LIMITER=true
+if (process.env.DISABLE_RATE_LIMITER === "true") {
+  console.log("Rate limiter disabled via DISABLE_RATE_LIMITER=true");
+} else {
+  console.log("Rate limiter enabled");
+  app.use(rateLimiter);
+}
 
 // our simple custom middleware
 // app.use((req, res, next) => {
