@@ -7,6 +7,8 @@ const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS, 10) || 10;
+
 export const register = async (req, res) => {
   const { name, email, password } = req.body;
 
@@ -23,7 +25,7 @@ export const register = async (req, res) => {
       return res.json({ success: false, message: "User already exists" });
     }
 
-    const hashed_pass = await bcrypt.hash(password, 12);
+    const hashed_pass = await bcrypt.hash(password, SALT_ROUNDS);
 
     const user = new userModel({
       name,
@@ -76,7 +78,36 @@ export const login = async (req, res) => {
       return res.json({ success: false, message: "No user found" });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    console.log(
+      `[auth] user found for login: ${user._id}. Starting password check`,
+    );
+
+    // helper: compare password with timeout to avoid long/blocking hangs
+    const compareWithTimeout = (plain, hash, ms = 5000) => {
+      return Promise.race([
+        bcrypt.compare(plain, hash),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("bcrypt-compare-timeout")), ms),
+        ),
+      ]);
+    };
+
+    let isMatch;
+    try {
+      console.time(`[auth] bcrypt.compare ${email}`);
+      isMatch = await compareWithTimeout(password, user.password, 5000);
+      console.timeEnd(`[auth] bcrypt.compare ${email}`);
+    } catch (err) {
+      console.error(
+        `[auth] password verification error for ${email}:`,
+        err.message || err,
+      );
+      console.timeEnd(`[auth] login ${email}`);
+      return res.status(503).json({
+        success: false,
+        message: "Password verification timeout or error",
+      });
+    }
 
     if (!isMatch) {
       console.timeEnd(`[auth] login ${email}`);
