@@ -7,7 +7,10 @@ const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS, 10) || 10;
+const SALT_ROUNDS = Math.min(
+  parseInt(process.env.BCRYPT_SALT_ROUNDS, 10) || 10,
+  12,
+); // Cap at 12 for performance
 
 export const register = async (req, res) => {
   const { name, email, password } = req.body;
@@ -75,15 +78,19 @@ export const login = async (req, res) => {
 
     if (!user) {
       console.timeEnd(`[auth] login ${email}`);
+      console.log(`[auth] NO USER FOUND for email: ${email}`);
       return res.json({ success: false, message: "No user found" });
     }
 
     console.log(
       `[auth] user found for login: ${user._id}. Starting password check`,
     );
+    console.log(
+      `[auth] user.password exists: ${!!user.password}, password input exists: ${!!password}`,
+    );
 
     // helper: compare password with timeout to avoid long/blocking hangs
-    const compareWithTimeout = (plain, hash, ms = 5000) => {
+    const compareWithTimeout = (plain, hash, ms = 10000) => {
       return Promise.race([
         bcrypt.compare(plain, hash),
         new Promise((_, reject) =>
@@ -95,8 +102,10 @@ export const login = async (req, res) => {
     let isMatch;
     try {
       console.time(`[auth] bcrypt.compare ${email}`);
-      isMatch = await compareWithTimeout(password, user.password, 5000);
+      console.log(`[auth] starting bcrypt.compare...`);
+      isMatch = await compareWithTimeout(password, user.password, 10000);
       console.timeEnd(`[auth] bcrypt.compare ${email}`);
+      console.log(`[auth] bcrypt.compare result: ${isMatch}`);
     } catch (err) {
       console.error(
         `[auth] password verification error for ${email}:`,
@@ -105,15 +114,17 @@ export const login = async (req, res) => {
       console.timeEnd(`[auth] login ${email}`);
       return res.status(503).json({
         success: false,
-        message: "Password verification timeout or error",
+        message: `Password verification failed: ${err.message}`,
       });
     }
 
     if (!isMatch) {
       console.timeEnd(`[auth] login ${email}`);
+      console.log(`[auth] PASSWORD MISMATCH for ${email}`);
       return res.json({ success: false, message: "Invalid Credentials" });
     }
 
+    console.log(`[auth] Password matched, creating JWT token...`);
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
@@ -125,11 +136,12 @@ export const login = async (req, res) => {
       maxAge: 604800000,
     });
     console.timeEnd(`[auth] login ${email}`);
+    console.log(`[auth] LOGIN SUCCESS for ${email}`);
 
     return res.json({ success: true });
   } catch (err) {
     console.error(`[auth] login error for ${email}:`, err.message || err);
-    res.json({ success: false, message: "Log in error " });
+    res.json({ success: false, message: "Log in error: " + err.message });
   }
 };
 
