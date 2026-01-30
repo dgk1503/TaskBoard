@@ -215,10 +215,8 @@ export const getMe = async (req, res) => {
         .status(401)
         .json({ success: false, message: "Not authenticated" });
 
-    const { password, verifyOtp, verifyOtpExpireAt, ...safeUser } = req.user
-      .toObject
-      ? req.user.toObject()
-      : req.user;
+    const userObj = req.user.toObject ? req.user.toObject() : req.user;
+    const { password, verifyOtp, verifyOtpExpireAt, ...safeUser } = userObj;
     return res.json({ success: true, user: safeUser });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
