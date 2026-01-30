@@ -31,13 +31,11 @@ export const createNotes = async (req, res) => {
     });
 
     await newNote.save();
-    res
-      .status(201)
-      .json({
-        success: true,
-        message: "Note Created Successfully",
-        note: newNote,
-      });
+    res.status(201).json({
+      success: true,
+      message: "Note Created Successfully",
+      note: newNote,
+    });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -84,21 +82,15 @@ export const deleteNotes = async (req, res) => {
     });
 
     if (!noteDoc) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Note not found" });
-    }
-
-    if (noteDoc.user.toString() !== req.user._id.toString()) {
-      return res.status(401).json({
+      return res.status(404).json({
         success: false,
-        message: "Not authorized to delete this note",
+        message: "Note not found",
       });
     }
 
     await noteDoc.deleteOne();
     res.json({ success: true, message: "Note deleted successfully" });
   } catch (err) {
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { FilePlus, HomeIcon } from "lucide-react";
+import { FilePlus, HomeIcon, LogOut, User } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 
@@ -37,12 +37,21 @@ const Navbar = () => {
             </Link>
 
             {user ? (
-              <>
-                <span className="px-3">Hello, {user.name}</span>
-                <button onClick={handleLogout} className="btn btn-ghost">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
+                  <User className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-semibold text-primary">
+                    {user.name}
+                  </span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="btn btn-sm btn-outline btn-error gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
                   Logout
                 </button>
-              </>
+              </div>
             ) : (
               <>
                 <Link to={"/login"} className="btn btn-ghost">

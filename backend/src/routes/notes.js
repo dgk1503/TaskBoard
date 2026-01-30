@@ -12,6 +12,6 @@ noterouter.use(protect);
 
 noterouter.route("/").get(getAllNotes).post(createNotes);
 
-noterouter.route("/:id").put(updateNotes).post(deleteNotes);
+noterouter.route("/:id").put(updateNotes).delete(deleteNotes);
 
 export default noterouter;

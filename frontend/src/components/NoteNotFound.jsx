@@ -8,7 +8,7 @@ const NoteNotFound = () => {
         <SearchX className="size-10 text-primary bg-transparent"></SearchX>
       </div>
       <h3 className="text-2xl font-bold">No Notes Found.</h3>
-      <p className="text-base-content/70">Lets Organise your day !</p>
+      <p className="text-base-content/70">Login and Lets get started !!</p>
       <Link to="/create" className="btn btn-outline">
         Create your Note
       </Link>
