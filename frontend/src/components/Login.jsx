@@ -3,11 +3,13 @@ import api from "../lib/axios";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import Navbar from "./Navbar.jsx";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -19,6 +21,7 @@ const Login = () => {
       const res = await api.post("/auth/login", form);
       if (res.data.success) {
         toast.success("Logged in!");
+        await refreshUser();
         navigate("/");
       } else {
         toast.error(res.data.message || "Login failed");
